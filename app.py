@@ -378,4 +378,6 @@ if __name__ == "__main__":
             {'Username': 'admin', 'Password': 'admin123', 'Role': 'Master'},
             {'Username': 'john', 'Password': 'pass123', 'Role': 'Normal'}
         ])
-       
+        save_data(initial_users, USERS_FILE)
+
+    main()
