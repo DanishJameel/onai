@@ -1,10 +1,3 @@
-I will first fetch the contents of the `app.py` file from the given repository so that I can analyze and help resolve the error.
-
-Let's start by retrieving the `app.py` file.The error encountered in the `main()` function is due to the `st.experimental_rerun()` method, which reruns the script from the top, but it can occasionally cause issues if the session state or other elements are not properly managed.
-
-Here is a revised version of your code that includes error handling for the `st.experimental_rerun()` method:
-
-```python
 import streamlit as st
 import pandas as pd
 import datetime
