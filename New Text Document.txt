@@ -1,0 +1,159 @@
+import streamlit as st
+import pandas as pd
+import datetime
+import os
+
+# File path for storing the Excel data
+DATA_FILE = "leads_data.xlsx"
+
+# Function to load data
+def load_data():
+    if os.path.exists(DATA_FILE):
+        return pd.read_excel(DATA_FILE)
+    else:
+        # Initial data structure if file doesn't exist
+        df = pd.DataFrame(columns=[
+            'First Name', 'Last Name', 'Title', 'Email', 'Mobile Phone1', 
+            'Mobile Phone2', 'Company Phone', 'Company', 'Company Address',
+            'Status', 'Follow_up_Date', 'Notes'
+        ])
+        return df
+
+# Function to save data
+def save_data(df):
+    df.to_excel(DATA_FILE, index=False)
+
+# Main Streamlit app
+def main():
+    st.title("Cold Call Lead Tracker")
+
+    # Load the data
+    df = load_data()
+
+    # Sidebar for navigation
+    menu = ["View Leads", "Add/Update Lead", "Follow-up Schedule"]
+    choice = st.sidebar.selectbox("Menu", menu)
+
+    # View Leads Section
+    if choice == "View Leads":
+        st.subheader("All Leads")
+        
+        # Filter options
+        status_filter = st.selectbox("Filter by Status", 
+                                   ["All"] + list(df['Status'].unique()))
+        
+        if status_filter != "All":
+            filtered_df = df[df['Status'] == status_filter]
+        else:
+            filtered_df = df
+            
+        st.dataframe(filtered_df)
+
+    # Add/Update Lead Section
+    elif choice == "Add/Update Lead":
+        st.subheader("Add or Update Lead Status")
+        
+        # Select lead to update or add new
+        lead_names = [f"{row['First Name']} {row['Last Name']}" for _, row in df.iterrows()]
+        lead_names.append("New Lead")
+        selected_lead = st.selectbox("Select Lead", lead_names)
+        
+        if selected_lead == "New Lead":
+            with st.form("new_lead_form"):
+                first_name = st.text_input("First Name")
+                last_name = st.text_input("Last Name")
+                title = st.text_input("Title")
+                email = st.text_input("Email")
+                mobile1 = st.text_input("Mobile Phone 1")
+                mobile2 = st.text_input("Mobile Phone 2")
+                company_phone = st.text_input("Company Phone")
+                company = st.text_input("Company")
+                company_address = st.text_input("Company Address")
+                
+                status = st.selectbox("Status", ["Not Contacted", "Contacted", 
+                                               "Interested", "Not Interested", 
+                                               "Follow Up Needed"])
+                follow_up_date = st.date_input("Follow-up Date", 
+                                             min_value=datetime.date.today())
+                notes = st.text_area("Notes")
+                
+                submit = st.form_submit_button("Add Lead")
+                
+                if submit:
+                    new_lead = pd.DataFrame({
+                        'First Name': [first_name],
+                        'Last Name': [last_name],
+                        'Title': [title],
+                        'Email': [email],
+                        'Mobile Phone1': [mobile1],
+                        'Mobile Phone2': [mobile2],
+                        'Company Phone': [company_phone],
+                        'Company': [company],
+                        'Company Address': [company_address],
+                        'Status': [status],
+                        'Follow_up_Date': [follow_up_date],
+                        'Notes': [notes]
+                    })
+                    df = pd.concat([df, new_lead], ignore_index=True)
+                    save_data(df)
+                    st.success("Lead added successfully!")
+        
+        else:
+            # Update existing lead
+            lead_index = lead_names.index(selected_lead)
+            with st.form("update_lead_form"):
+                st.write(f"Updating: {selected_lead}")
+                current_data = df.iloc[lead_index]
+                
+                status = st.selectbox("Status", ["Not Contacted", "Contacted", 
+                                               "Interested", "Not Interested", 
+                                               "Follow Up Needed"],
+                                    index=["Not Contacted", "Contacted", 
+                                          "Interested", "Not Interested", 
+                                          "Follow Up Needed"].index(
+                                              current_data.get('Status', 'Not Contacted')))
+                
+                follow_up_date = st.date_input("Follow-up Date",
+                                             value=pd.to_datetime(current_data.get('Follow_up_Date', 
+                                                                                  datetime.date.today())))
+                notes = st.text_area("Notes", value=current_data.get('Notes', ''))
+                
+                submit = st.form_submit_button("Update Lead")
+                
+                if submit:
+                    df.at[lead_index, 'Status'] = status
+                    df.at[lead_index, 'Follow_up_Date'] = follow_up_date
+                    df.at[lead_index, 'Notes'] = notes
+                    save_data(df)
+                    st.success("Lead updated successfully!")
+
+    # Follow-up Schedule Section
+    elif choice == "Follow-up Schedule":
+        st.subheader("Follow-up Schedule")
+        
+        # Show leads needing follow-up
+        today = datetime.date.today()
+        upcoming_follow_ups = df[df['Follow_up_Date'].notna() & 
+                               (pd.to_datetime(df['Follow_up_Date']).dt.date >= today)]
+        
+        if not upcoming_follow_ups.empty:
+            upcoming_follow_ups = upcoming_follow_ups.sort_values('Follow_up_Date')
+            st.dataframe(upcoming_follow_ups[['First Name', 'Last Name', 
+                                            'Company', 'Status', 
+                                            'Follow_up_Date', 'Notes']])
+        else:
+            st.write("No upcoming follow-ups scheduled.")
+
+if __name__ == '__main__':
+    # Initialize with your data if file doesn't exist
+    if not os.path.exists(DATA_FILE):
+        # Assuming your data is in a string format as shown
+        # Convert your document data to DataFrame here
+        # For this example, I'll create a basic structure
+        initial_data = pd.read_csv("your_data.csv")  # Replace with actual parsing of your data
+        initial_data['Status'] = 'Not Contacted'
+        initial_data['Follow_up_Date'] = pd.NaT
+        initial_data['Notes'] = ''
+        save_data(initial_data)
+    
+    main()
