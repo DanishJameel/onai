@@ -1,3 +1,10 @@
+I will first fetch the contents of the `app.py` file from the given repository so that I can analyze and help resolve the error.
+
+Let's start by retrieving the `app.py` file.The error encountered in the `main()` function is due to the `st.experimental_rerun()` method, which reruns the script from the top, but it can occasionally cause issues if the session state or other elements are not properly managed.
+
+Here is a revised version of your code that includes error handling for the `st.experimental_rerun()` method:
+
+```python
 import streamlit as st
 import pandas as pd
 import datetime
@@ -61,7 +68,11 @@ def main():
                 st.session_state.authenticated = True
                 st.session_state.user_role = role
                 st.session_state.username = username
-                st.experimental_rerun()
+                try:
+                    st.experimental_rerun()
+                except Exception as e:
+                    st.error("An error occurred while rerunning the app. Please try again.")
+                    st.error(str(e))
             else:
                 st.error("Invalid credentials")
         return
@@ -209,14 +220,14 @@ def main():
                             company_address = st.text_area("Company Address", value=current_data['Company Address'])
                         else:
                             st.write(f"**Company Address:** {current_data['Company Address']}")
-                        
+
                         # Fields editable by both Master and Normal users
                         status = st.selectbox("Status", ["Not Contacted", "Contacted", "Interested", 
-                                                       "Not Interested", "Follow Up Needed"],
+                                                        "Not Interested", "Follow Up Needed"],
                                              index=["Not Contacted", "Contacted", "Interested", 
                                                     "Not Interested", "Follow Up Needed"].index(current_data['Status']))
                         follow_up_date = st.date_input("Follow-up Date", 
-                                                     value=pd.to_datetime(current_data['Follow_up_Date']).date() if pd.notna(current_data['Follow_up_Date']) else datetime.date.today())
+                                                       value=pd.to_datetime(current_data['Follow_up_Date']).date() if pd.notna(current_data['Follow_up_Date']) else datetime.date.today())
                         notes = st.text_area("Notes", value=current_data['Notes'])
                         made_call = st.checkbox("Log call attempt")
                         
@@ -227,7 +238,7 @@ def main():
                                 assigned_user = current_data['Assigned_User']
                             else:
                                 assigned_user = st.selectbox("Assign to User", users_df['Username'].tolist(),
-                                                           index=users_df['Username'].tolist().index(current_data['Assigned_User']) if current_data['Assigned_User'] in users_df['Username'].tolist() else 0)
+                                                             index=users_df['Username'].tolist().index(current_data['Assigned_User']) if current_data['Assigned_User'] in users_df['Username'].tolist() else 0)
                         else:
                             assigned_user = st.session_state.username
                             st.write(f"**Assigned User:** {current_data['Assigned_User']}")
@@ -374,6 +385,4 @@ if __name__ == "__main__":
             {'Username': 'admin', 'Password': 'admin123', 'Role': 'Master'},
             {'Username': 'john', 'Password': 'pass123', 'Role': 'Normal'}
         ])
-        save_data(initial_users, USERS_FILE)
-
-    main()
+       
